@@ -1,0 +1,234 @@
+!pip install pyspark
+  
+from pyspark.sql import SparkSession
+
+# Start a Spark session
+spark = SparkSession.builder.appName("Aijobtrends").getOrCreate()
+
+  # Load CSV file into Spark DataFrame
+df = spark.read.csv("/content/ai_job_trends_dataset.csv", header=True, inferSchema=True)
+
+# Show the first 5 rows
+df.show(5)
+
+
+  --------------------+-------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+---------+--------------------+
+|           Job Title|     Industry|Job Status|AI Impact Level|Median Salary (USD)|Required Education|Experience Required (Years)|Job Openings (2024)|Projected Openings (2030)|Remote Work Ratio (%)|Automation Risk (%)| Location|Gender Diversity (%)|
++--------------------+-------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+---------+--------------------+
+|  Investment analyst|           IT|Increasing|       Moderate|           42109.76|   Master’s Degree|                          5|               1515|                     6342|                55.96|              28.28|       UK|               44.63|
+|Journalist, newsp...|Manufacturing|Increasing|       Moderate|          132298.57|   Master’s Degree|                         15|               1243|                     6205|                16.81|              89.71|      USA|               66.39|
+|   Financial planner|      Finance|Increasing|            Low|          143279.19| Bachelor’s Degree|                          4|               3338|                     1154|                91.82|              72.97|   Canada|               41.13|
+|     Legal secretary|   Healthcare|Increasing|           High|           97576.13|  Associate Degree|                         15|               7173|                     4060|                 1.89|              99.94|Australia|               65.76|
+|Aeronautical engi...|           IT|Increasing|            Low|           60956.63|   Master’s Degree|                         13|               5944|                     7396|                53.76|              37.65|  Germany|               72.57|
++--------------------+-------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+---------+--------------------+
+only showing top 5 rows
+
+  df.printSchema()
+
+  root
+ |-- Job Title: string (nullable = true)
+ |-- Industry: string (nullable = true)
+ |-- Job Status: string (nullable = true)
+ |-- AI Impact Level: string (nullable = true)
+ |-- Median Salary (USD): double (nullable = true)
+ |-- Required Education: string (nullable = true)
+ |-- Experience Required (Years): integer (nullable = true)
+ |-- Job Openings (2024): integer (nullable = true)
+ |-- Projected Openings (2030): integer (nullable = true)
+ |-- Remote Work Ratio (%): double (nullable = true)
+ |-- Automation Risk (%): double (nullable = true)
+ |-- Location: string (nullable = true)
+ |-- Gender Diversity (%): double (nullable = true)
+
+   df.describe().show()
+
+   +-------+------------------+--------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+---------+--------------------+
+|summary|         Job Title|      Industry|Job Status|AI Impact Level|Median Salary (USD)|Required Education|Experience Required (Years)|Job Openings (2024)|Projected Openings (2030)|Remote Work Ratio (%)|Automation Risk (%)| Location|Gender Diversity (%)|
++-------+------------------+--------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+---------+--------------------+
+|  count|             30000|         30000|     30000|          30000|              30000|             30000|                      30000|              30000|                    30000|                30000|              30000|    30000|               30000|
+|   mean|              NULL|          NULL|      NULL|           NULL|  90119.96563866621|              NULL|         10.051433333333334|  5039.640833333333|                5074.2181|    49.83643133333343|  50.15422933333304|     NULL|   49.97966033333349|
+| stddev|              NULL|          NULL|      NULL|           NULL| 34412.013952932466|              NULL|          6.060677547873689| 2861.0096537132763|       2866.5507219130914|   28.966688166559855| 28.754888930765418|     NULL|  17.274665293911198|
+|    min|Academic librarian|     Education|Decreasing|           High|           30001.86|  Associate Degree|                          0|                100|                      100|                  0.0|                0.0|Australia|                20.0|
+|    max|      Youth worker|Transportation|Increasing|       Moderate|           149998.5|               PhD|                         20|              10000|                    10000|                100.0|              99.99|      USA|                80.0|
++-------+------------------+--------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+---------+--------------------+
+
+   print("Columns:", df.columns)
+print("Total Rows:", df.count())
+
+Columns: ['Job Title', 'Industry', 'Job Status', 'AI Impact Level', 'Median Salary (USD)', 'Required Education', 'Experience Required (Years)', 'Job Openings (2024)', 'Projected Openings (2030)', 'Remote Work Ratio (%)', 'Automation Risk (%)', 'Location', 'Gender Diversity (%)']
+Total Rows: 30000
+
+
+  df.orderBy("job Title",ascending=False).show(5)
+
+  +------------+--------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+--------+--------------------+
+|   Job Title|      Industry|Job Status|AI Impact Level|Median Salary (USD)|Required Education|Experience Required (Years)|Job Openings (2024)|Projected Openings (2030)|Remote Work Ratio (%)|Automation Risk (%)|Location|Gender Diversity (%)|
++------------+--------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+--------+--------------------+
+|Youth worker|        Retail|Increasing|            Low|           92342.34| Bachelor’s Degree|                         16|               5553|                     8871|                19.52|              67.45|   China|               43.51|
+|Youth worker|       Finance|Increasing|            Low|          149050.35|               PhD|                          3|               4303|                     5183|                 15.7|              90.38|      UK|               31.52|
+|Youth worker|Transportation|Increasing|       Moderate|           35227.45| Bachelor’s Degree|                         18|               6978|                      497|                 0.96|              19.91|   China|               26.56|
+|Youth worker| Manufacturing|Decreasing|           High|          110472.77|  Associate Degree|                          3|               4232|                     2368|                95.97|              85.69| Germany|               36.53|
+|Youth worker|Transportation|Decreasing|           High|           30438.77|  Associate Degree|                         14|               7614|                     2566|                33.13|              82.73|  Brazil|               43.14|
++------------+--------------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+--------+--------------------+
+only showing top 5 rows
+
+  from pyspark.sql.functions import col,count,when
+df.select([count(when(col(c).isNull(),c)).alias(c)for c in df.columns]).show()
+
+    +---------+--------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+--------+--------------------+
+|Job Title|Industry|Job Status|AI Impact Level|Median Salary (USD)|Required Education|Experience Required (Years)|Job Openings (2024)|Projected Openings (2030)|Remote Work Ratio (%)|Automation Risk (%)|Location|Gender Diversity (%)|
++---------+--------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+--------+--------------------+
+|        0|       0|         0|              0|                  0|                 0|                          0|                  0|                        0|                    0|                  0|       0|                   0|
++---------+--------+----------+---------------+-------------------+------------------+---------------------------+-------------------+-------------------------+---------------------+-------------------+--------+--------------------+
+
+
+    df=df.dropDuplicates()
+print("Rows after removing duplicates:",df.count())
+
+Rows after removing duplicates: 30000
+
+df=df.withColumnRenamed("job Title","job_Title")
+df=df.replace("IT","Information Technology",subset=["Industry"])
+from pyspark .sql.functions import col
+df=df.withColumn("Remote_Work_Ratio", col("Remote Work Ratio (%)") / 100)
+
+df.select("Job_Title").distinct().count()
+
+df.select("Industry").distinct().show()
+
++--------------------+
+|            Industry|
++--------------------+
+|           Education|
+|       Entertainment|
+|          Healthcare|
+|Information Techn...|
+|             Finance|
+|              Retail|
+|       Manufacturing|
+|      Transportation|
++--------------------+
+
+  df.groupBy("Job_Title").count().orderBy("count", ascending=False).show(10, truncate=False
+
+ +------------------------------------+-----+
+|Job_Title                           |count|
++------------------------------------+-----+
+|Surveyor, insurance                 |75   |
+|Counselling psychologist            |70   |
+|Charity officer                     |68   |
+|Surveyor, land/geomatics            |67   |
+|Hydrogeologist                      |66   |
+|Insurance claims handler            |65   |
+|Tax inspector                       |64   |
+|Engineer, production                |64   |
+|Television production assistant     |63   |
+|International aid/development worker|63   |
++------------------------------------+-----+
+only showing top 10 rows
+
+df.groupBy("Industry").count().orderBy("count", ascending=False).show(truncate=False)
+
+ +----------------------+-----+
+|Industry              |count|
++----------------------+-----+
+|Entertainment         |3895 |
+|Manufacturing         |3855 |
+|Healthcare            |3771 |
+|Finance               |3721 |
+|Education             |3714 |
+|Retail                |3702 |
+|Information Technology|3681 |
+|Transportation        |3661 |
++----------------------+-----+
+
+df.groupBy("AI Impact Level").count().orderBy("count", ascending=False).show()    
+
+  +---------------+-----+
+|AI Impact Level|count|
++---------------+-----+
+|       Moderate|10042|
+|           High|10005|
+|            Low| 9953|
++---------------+-----+
+
+df.select("Job_Title", "Automation Risk (%)", "Median Salary (USD)").orderBy("Automation Risk (%)", ascending=False).show(10, truncate=False)
+
+                                                                         +-------------------------------------+-------------------+-------------------+
+|Job_Title                            |Automation Risk (%)|Median Salary (USD)|
++-------------------------------------+-------------------+-------------------+
+|Meteorologist                        |99.99              |129589.14          |
+|Fast food restaurant manager         |99.99              |125412.03          |
+|Advertising art director             |99.98              |122260.8           |
+|Engineer, electrical                 |99.98              |44683.91           |
+|Designer, multimedia                 |99.98              |35545.2            |
+|Water engineer                       |99.98              |71434.46           |
+|Conservator, museum/gallery          |99.97              |32196.66           |
+|Horticulturist, commercial           |99.97              |135256.82          |
+|Teacher, adult education             |99.97              |113446.92          |
+|Medical laboratory scientific officer|99.97              |73567.16           |
++-------------------------------------+-------------------+-------------------+
+only showing top 10 rows
+
+  df.select("Job_Title", "Gender Diversity (%)").orderBy("Gender Diversity (%)", ascending=False).show(10, truncate=False)  
+
++------------------------+--------------------+
+|Job_Title               |Gender Diversity (%)|
++------------------------+--------------------+
+|Illustrator             |80.0                |
+|Professor Emeritus      |80.0                |
+|Rural practice surveyor |79.99               |
+|Call centre manager     |79.99               |
+|Risk analyst            |79.99               |
+|Proofreader             |79.98               |
+|Corporate treasurer     |79.98               |
+|Manufacturing engineer  |79.98               |
+|Herpetologist           |79.98               |
+|Doctor, general practice|79.98               |
++------------------------+--------------------+
+only showing top 10 rows
+
+df.withColumn("Growth", df["Projected Openings (2030)"] - df["Job Openings (2024)"]) \
+  .select("Job_Title", "Job Openings (2024)", "Projected Openings (2030)", "Growth") \
+  .orderBy("Growth", ascending=False).show(10, truncate=False)
+
++----------------------------+-------------------+-------------------------+------+
+|Job_Title                   |Job Openings (2024)|Projected Openings (2030)|Growth|
++----------------------------+-------------------+-------------------------+------+
+|Academic librarian          |143                |9961                     |9818  |
+|Surgeon                     |189                |9999                     |9810  |
+|Estate manager/land agent   |185                |9984                     |9799  |
+|Technical sales engineer    |119                |9918                     |9799  |
+|Corporate investment banker |116                |9860                     |9744  |
+|Garment/textile technologist|259                |10000                    |9741  |
+|Customer service manager    |136                |9854                     |9718  |
+|Quality manager             |226                |9918                     |9692  |
+|Operations geologist        |147                |9833                     |9686  |
+|Water engineer              |239                |9920                     |9681  |
++----------------------------+-------------------+-------------------------+------+
+only showing top 10 rows
+
+impact_df = df.groupBy("AI Impact Level").count().orderBy("count", ascending=False)
+impact_df.show()
++---------------+-----+
+|AI Impact Level|count|
++---------------+-----+
+|       Moderate|10042|
+|           High|10005|
+|            Low| 9953|
++---------------+-----+
+                                                                         
+impact_pd = impact_df.toPandas()
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.figure(figsize=(8,5))
+sns.barplot(data=impact_pd, x="AI Impact Level", y="count", palette="coolwarm")
+plt.title("Job Count by AI Impact Level")
+plt.xlabel("AI Impact Level")
+plt.ylabel("Number of Jobs")
+plt.grid(True)
+plt.show()
+
+                                                                     
