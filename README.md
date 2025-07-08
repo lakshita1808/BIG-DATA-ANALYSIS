@@ -28,3 +28,7 @@ PySpark (Big data analysis)
 Pandas (for conversions)
 
 Matplotlib & Seaborn (for visualization)
+
+##OUTPUT 
+
+<img width="713" height="470" alt="Image" src="https://github.com/user-attachments/assets/8a7c8576-1b2a-421b-89cf-26bace63ebd2" />
